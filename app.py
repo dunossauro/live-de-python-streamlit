@@ -1,50 +1,55 @@
 import streamlit as st
-from PIL import Image, ImageFont, ImageDraw
+from streamlit.components import v1 as components
+from spacy import load, displacy
+
+nlp = load('pt_core_news_lg')
+
+bar = st.sidebar
+
+escolha = bar.selectbox(
+    'Escolha uma categoria',
+    ['Entidades', 'Gramática']
+)
+
+text = st.text_area('Bote um textão aqui!')
+
+doc = nlp(text)
 
 
-def text_on_image(image, text, font_size, color):
-    img = Image.open(image)
-    font = ImageFont.truetype('arial.ttf', font_size)
-    draw = ImageDraw.Draw(img)
+if text and escolha == 'Entidades':
+    data = displacy.render(doc, style='ent')
 
-    iw, ih = img.size
-    fw, fh = font.getsize(text)
+    with st.expander('Dados do spaCy'):
+        components.html(
+            data, scrolling=True, height=300
+        )
 
-    draw.text(
-        ((iw - fw) / 2, (ih - fh) / 2),
-        text,
-        fill=color,
-        font=font
+    a, b = st.columns(2)
+    for e in doc.ents:
+        a.info(e)
+        b.warning(e.label_)
+
+
+if text and escolha == 'Gramática':
+    filtro = bar.multiselect(
+        'Filtro',
+        ['VERB', 'PROPN', 'ADV', 'AUX'],
+        default=['VERB', 'PROPN']
     )
+    with st.expander('Dados do spaCy'):
+        st.json(doc.to_json())
 
-    img.save('last_image.jpg')
+    container = st.container()
+    a, b, c = container.columns(3)
 
+    a.subheader('Token')
+    b.subheader('Tag')
+    c.subheader('Morph')
 
-image = st.file_uploader('Uma imagem', type=['jpg'])
-text = st.text_input('Sua marca dágua')
-# color = st.selectbox(
-#     'Cor da sua marca', ['black', 'white', 'red', 'green']
-# )
-
-color = st.color_picker('Escolha uma cor')
-
-font_size = st.number_input('Tamanho da fonte', min_value=50)
-
-if image:
-    result = st.button(
-        'Aplicar',
-        type='primary',
-        on_click=text_on_image,
-        args=(image, text, font_size, color)
-    )
-    if result:
-        st.image('last_image.jpg')
-        with open('last_image.jpg', 'rb') as file:
-            st.download_button(
-                'Baixe agora mesmo sua foto com marca',
-                file_name='image_com_marca.jpg',
-                data=file,
-                mime='image/jpg'
-            )
-else:
-    st.warning('Ainda não temos imagem!')
+    for t in doc:
+        if t.tag_ in filtro:
+            container = st.container()
+            a, b, c = container.columns(3)
+            a.info(t)
+            b.warning(t.tag_)
+            c.error(t.morph)
