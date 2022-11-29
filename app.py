@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit.components import v1 as components
 from spacy import load, displacy
 
-nlp = load('pt_core_news_lg')
+nlp = load('pt_core_news_sm')
 
 bar = st.sidebar
 
